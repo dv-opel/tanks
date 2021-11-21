@@ -9,9 +9,9 @@ clock = pygame.time.Clock()
 
 game = True
 while game:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            game = False
+    # for event in pygame.event.get():
+    #     if event.type == pygame.QUIT:
+    #         game = False
 
     pygame.display.update()
     clock.tick(FPS)
