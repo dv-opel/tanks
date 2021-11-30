@@ -2,10 +2,13 @@ import pygame
 pygame.init()
 import os
 
+def image_path(im_name):
+    return os.path.join(os.path.abspath(__file__ + "/.."), im_name)
+
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 WINDOW_WIDTH, WINDOW_HEIGHT = 600, 600
 PIXEL_SIZE = 50
-FPS = 10
+FPS = 60
 window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 clock = pygame.time.Clock()
 
@@ -23,27 +26,53 @@ class Pixel(pygame.Surface):
         window.blit(self.image, (self.x, self.y))
 
 class gameSprite(pygame.sprite.Sprite):
-    def __init__(self, x, y, pic_name):
+    def __init__(self, x, y, pic_name, speed):
         super().__init__()
         self.rect = pygame.Rect(x, y, PIXEL_SIZE, PIXEL_SIZE)
         self.image = pygame.image.load(pic_name)
+        self.speed = speed
     def show(self):
         window.blit(self.image, self.rect)
+    def canMove(self, wall):
+        if self.rect.colliderect(wall.rect):
+            return False
+        else:
+            return True
 
 class Player(gameSprite):
     def move(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and self.rect.x > 0:
-            self.rect.x -= PIXEL_SIZE
+            if self.rect.y % PIXEL_SIZE >= 25:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
+            self.image = pygame.image.load(image_path("images/tank-yellow-a.png"))
+            self.rect.x -= self.speed
         elif keys[pygame.K_RIGHT] and self.rect.x < WINDOW_WIDTH - PIXEL_SIZE:
-            self.rect.x += PIXEL_SIZE
+            if self.rect.y % PIXEL_SIZE >= 25:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
+            self.image = pygame.image.load(image_path("images/tank-yellow-d.png"))
+            self.rect.x += self.speed
         elif keys[pygame.K_UP] and self.rect.y > 0:
-            self.rect.y -= PIXEL_SIZE
+            if self.rect.x % PIXEL_SIZE >= 25:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
+            self.image = pygame.image.load(image_path("images/tank-yellow-w.png"))
+            self.rect.y -= self.speed
         elif keys[pygame.K_DOWN] and self.rect.y < WINDOW_HEIGHT - PIXEL_SIZE:
-            self.rect.y += PIXEL_SIZE
+            if self.rect.x % PIXEL_SIZE >= 25:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
+            self.image = pygame.image.load(image_path("images/tank-yellow-s.png"))
+            self.rect.y += self.speed
         self.show()
 
-player = Player(200, 550, "images/tank-yellow-w.png")
+player = Player(200, 550, image_path("images/tank-yellow-w.png"), 2)
 
 level_map = [
     [0,0,0,0,0,0,0,0,0,0,0,0],
@@ -70,7 +99,7 @@ def show_level():
             if pixel == 0:
                 pass
             elif pixel == 1:
-                wall = Pixel(p_x, p_y, (200, 0, 0), "images/wall.png")
+                wall = Pixel(p_x, p_y, (200, 0, 0), image_path("images/wall.png"))
                 walls.append(wall)
             p_x += PIXEL_SIZE
         p_y += PIXEL_SIZE
