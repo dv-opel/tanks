@@ -18,7 +18,7 @@ class Pixel(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, pic_name):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
-        self.image = pygame.image.load(file_path(pic_name)).convert()        
+        self.image = pygame.image.load(file_path(pic_name)).convert_alpha()        
     def show_image(self):
         window.blit(self.image, self.rect)
 
@@ -47,7 +47,7 @@ class Tank(pygame.sprite.Sprite):
     def show(self):
         window.blit(self.image, self.rect)
     def can_move(self):
-        c = pygame.sprite.spritecollide(self, walls, False)
+        c = pygame.sprite.spritecollide(self, walls_show, False)
         if c:
             if self.way == "w":
                 self.can_move_w = False
@@ -124,18 +124,27 @@ class Bullet(Tank):
             self.create_bullet_bam()
             self.kill()
         
-        if pygame.sprite.spritecollide(self, walls, True):
+        if pygame.sprite.spritecollide(self, walls_brick, True):
             self.create_bullet_bam()
             self.kill()
+        
+        if pygame.sprite.spritecollide(self, walls_titan, False):
+            self.create_bullet_bam()
+            self.kill()
+
+        if pygame.sprite.spritecollide(self, tanks, True):
+            self.create_bullet_bam()
+            self.kill()
+
     def create_bullet_bam(self):
         if self.way == "w":
-            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.top - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.top - 20, 40, 40, file_path("images/bullet_bam.png"))
         elif self.way == "d":
-            bullet_bam = BulletBam(self.rect.right - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+            bullet_bam = BulletBam(self.rect.right - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.png"))
         elif self.way == "s":
-            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.bottom - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.bottom - 20, 40, 40, file_path("images/bullet_bam.png"))
         elif self.way == "a":
-            bullet_bam = BulletBam(self.rect.left - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+            bullet_bam = BulletBam(self.rect.left - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.png"))
         bullet_bams.add(bullet_bam)
 
 class BulletBam(Pixel):
@@ -151,16 +160,16 @@ class BulletBam(Pixel):
 
 level_map = [
     [0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,3,1,0,1,1,0,1,3,1,0],
+    [0,1,2,1,0,3,3,0,1,2,1,0],
     [0,1,0,1,0,1,1,0,1,0,1,0],
-    [0,1,0,1,0,0,0,0,1,0,1,0],
-    [0,1,0,1,0,1,1,0,1,0,1,0],
-    [0,1,0,1,0,0,0,0,1,0,1,0],
+    [0,4,4,4,0,0,0,0,4,4,4,0],
     [0,0,0,0,0,1,1,0,0,0,0,0],
     [0,0,0,0,0,1,1,0,0,0,0,0],
     [0,1,0,1,0,0,0,0,1,0,1,0],
     [0,1,0,1,0,1,1,0,1,0,1,0],
-    [0,1,0,1,0,0,0,0,1,0,1,0],
-    [0,1,0,1,0,1,1,0,1,0,1,0],
+    [0,1,2,1,0,3,3,0,1,2,1,0],
+    [0,1,3,1,0,1,1,0,1,3,1,0],
     [0,0,0,0,0,0,0,0,0,0,0,0]
 ]
 
@@ -173,17 +182,44 @@ def show_level():
                 pass
             elif pixel == 1:
                 wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall.png")
-                walls.add(wall)
+                walls_show.add(wall)
+                walls_brick.add(wall)
+            elif pixel == 2:
+                wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-titan.jpg")
+                walls_show.add(wall)
+                walls_titan.add(wall)
+            elif pixel == 3:
+                wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-green.png")
+                walls_show_green.add(wall)
+            elif pixel == 4:
+                wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-water.jpg")
+                walls_show.add(wall)
+                walls_water.add(wall)
             p_x += PIXEL_SIZE
         p_y += PIXEL_SIZE
 
 
-player = Player(200, 550, file_path("images/tank-yellow-w.png"), file_path("images/tank-yellow-d.png"), file_path("images/tank-yellow-s.png"), file_path("images/tank-yellow-a.png"), 2, "w")
-walls = pygame.sprite.Group()
+player = Player(200, 550, file_path("images/tanks/tank-yellow-w.png"), file_path("images/tanks/tank-yellow-d.png"), file_path("images/tanks/tank-yellow-s.png"), file_path("images/tanks/tank-yellow-a.png"), 2, "w")
+tank1 = Tank(0, 0, file_path("images/tanks/enemy1-w.png"), file_path("images/tanks/enemy1-d.png"), file_path("images/tanks/enemy1-s.png"), file_path("images/tanks/enemy1-a.png"), 2, "s")
+
+tank2 = Tank(WINDOW_WIDTH - PIXEL_SIZE, 0, file_path("images/tanks/enemy2-w.png"), file_path("images/tanks/enemy2-d.png"), file_path("images/tanks/enemy2-s.png"), file_path("images/tanks/enemy2-a.png"), 2, "s")
+tank3 = Tank(0, 150, file_path("images/tanks/enemy3-w.png"), file_path("images/tanks/enemy3-d.png"), file_path("images/tanks/enemy3-s.png"), file_path("images/tanks/enemy3-a.png"), 2, "s")
+tank4 = Tank(WINDOW_WIDTH - PIXEL_SIZE, 150, file_path("images/tanks/enemy4-w.png"), file_path("images/tanks/enemy4-d.png"), file_path("images/tanks/enemy4-s.png"), file_path("images/tanks/enemy4-a.png"), 2, "s")
+
+walls_show = pygame.sprite.Group()
+walls_show_green = pygame.sprite.Group()
+walls_brick = pygame.sprite.Group()
+walls_titan = pygame.sprite.Group()
+walls_water = pygame.sprite.Group()
+
 bullets = pygame.sprite.Group()
 bullet_bams = pygame.sprite.Group()
 
-
+tanks = pygame.sprite.Group()
+tanks.add(tank1)
+tanks.add(tank2)
+tanks.add(tank3)
+tanks.add(tank4)
 #print(walls.sprites()[0])
 #print(player.rect.right)
 
@@ -199,7 +235,9 @@ while game:
 
     window.fill((0, 0, 0))
     
-    walls.draw(window)
+    walls_show.draw(window)
+
+    tanks.draw(window)
 
     player.can_move()
     player.update()
@@ -207,9 +245,9 @@ while game:
 
     bullets.update()
     bullets.draw(window)
-
     bullet_bams.update()
 
+    walls_show_green.draw(window)
 
     pygame.display.update()
     clock.tick(FPS)
