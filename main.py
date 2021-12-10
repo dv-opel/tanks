@@ -23,15 +23,22 @@ class Pixel(pygame.sprite.Sprite):
         window.blit(self.image, self.rect)
 
 class Tank(pygame.sprite.Sprite):
-    def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed):
+    def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way, w = PIXEL_SIZE, h = PIXEL_SIZE):
         super().__init__()
-        self.rect = pygame.Rect(x, y, PIXEL_SIZE, PIXEL_SIZE)
+        self.rect = pygame.Rect(x, y, w, h)
         self.image_w = pygame.image.load(pic_name_w).convert_alpha()
         self.image_d = pygame.image.load(pic_name_d).convert_alpha()
         self.image_s = pygame.image.load(pic_name_s).convert_alpha()
         self.image_a = pygame.image.load(pic_name_a).convert_alpha()
-        self.image = self.image_w
-        self.way = "w"
+        self.way = way
+        if way == "w":
+            self.image = self.image_w
+        elif way == "d":
+            self.image = self.image_d
+        elif way == "s":
+            self.image = self.image_s
+        elif way == "a":
+            self.image = self.image_a    
         self.speed = speed
         self.can_move_w = True
         self.can_move_d = True
@@ -54,9 +61,18 @@ class Tank(pygame.sprite.Sprite):
             self.can_move_w = True
             self.can_move_d = True
             self.can_move_s = True
-            self.can_move_a = True         
+            self.can_move_a = True    
+    def shoot(self):
+        if self.way == "w":
+            bullet = Bullet(self.rect.centerx - 5, self.rect.top - 5, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
+        elif self.way == "d":
+            bullet = Bullet(self.rect.right, self.rect.centery - 5, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
+        elif self.way == "s":
+            bullet = Bullet(self.rect.centerx - 5, self.rect.bottom, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
+        elif self.way == "a":
+            bullet = Bullet(self.rect.left - 5, self.rect.centery - 5, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
+        bullet.add(bullets)
                 
-
 class Player(Tank):
     def update(self):
         keys = pygame.key.get_pressed()
@@ -93,8 +109,45 @@ class Player(Tank):
             self.way = "s"
             self.rect.y += self.speed
 
+class Bullet(Tank):
+    def update(self):
+        if self.way == "w":
+            self.rect.y -= self.speed
+        elif self.way == "d":
+            self.rect.x += self.speed
+        elif self.way == "s":
+            self.rect.y += self.speed
+        elif self.way == "a":
+            self.rect.x -= self.speed
+        
+        if self.rect.top <= 0 or self.rect.left <= 0 or self.rect.right >= WINDOW_WIDTH or self.rect.bottom >= WINDOW_HEIGHT:
+            self.create_bullet_bam()
+            self.kill()
+        
+        if pygame.sprite.spritecollide(self, walls, True):
+            self.create_bullet_bam()
+            self.kill()
+    def create_bullet_bam(self):
+        if self.way == "w":
+            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.top - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+        elif self.way == "d":
+            bullet_bam = BulletBam(self.rect.right - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+        elif self.way == "s":
+            bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.bottom - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+        elif self.way == "a":
+            bullet_bam = BulletBam(self.rect.left - 20, self.rect.centery - 20, 40, 40, file_path("images/bullet_bam.jpg"))
+        bullet_bams.add(bullet_bam)
 
-player = Player(200, 550, file_path("images/tank-yellow-w.png"), file_path("images/tank-yellow-d.png"), file_path("images/tank-yellow-s.png"), file_path("images/tank-yellow-a.png"), 2)
+class BulletBam(Pixel):
+    def __init__(self, x, y, width, height, pic_name):
+        super().__init__(x, y, width, height, pic_name)
+        self.timer = 3
+    def update(self):
+        if self.timer >= 0:
+            self.show_image()
+            self.timer -= 1
+        else:
+            self.kill()
 
 level_map = [
     [0,0,0,0,0,0,0,0,0,0,0,0],
@@ -111,8 +164,6 @@ level_map = [
     [0,0,0,0,0,0,0,0,0,0,0,0]
 ]
 
-walls = pygame.sprite.Group()
-
 def show_level():
     p_y = 0
     for line in level_map:
@@ -125,15 +176,26 @@ def show_level():
                 walls.add(wall)
             p_x += PIXEL_SIZE
         p_y += PIXEL_SIZE
-show_level()
+
+
+player = Player(200, 550, file_path("images/tank-yellow-w.png"), file_path("images/tank-yellow-d.png"), file_path("images/tank-yellow-s.png"), file_path("images/tank-yellow-a.png"), 2, "w")
+walls = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+bullet_bams = pygame.sprite.Group()
+
 
 #print(walls.sprites()[0])
 #print(player.rect.right)
+
+show_level()
 game = True
 while game:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             game = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                player.shoot()
 
     window.fill((0, 0, 0))
     
@@ -142,6 +204,12 @@ while game:
     player.can_move()
     player.update()
     player.show()
+
+    bullets.update()
+    bullets.draw(window)
+
+    bullet_bams.update()
+
 
     pygame.display.update()
     clock.tick(FPS)
