@@ -57,8 +57,7 @@ class Tank(pygame.sprite.Sprite):
     def show(self):
         window.blit(self.image, self.rect)
     def can_move(self):
-        c = pygame.sprite.spritecollide(self, walls_show, False)
-        if c:
+        if pygame.sprite.spritecollide(self, sprites_draw_collide, False):
             if self.way == "w":
                 self.can_move_w = False
             if self.way == "d":
@@ -81,13 +80,20 @@ class Tank(pygame.sprite.Sprite):
             bullet = Bullet(self.rect.centerx - 5, self.rect.bottom, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
         elif self.way == "a":
             bullet = Bullet(self.rect.left - 7, self.rect.centery - 5, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
-        bullet.add(bullets)
+        if isinstance(self, Player):
+            bullet.add(bullets_player)
+        elif isinstance(self, Enemy):
+            bullet.add(bullets_enemys)
         music_shot.play()
+        bullet.add(bullets)
+
 
 class Enemy(Tank):
     def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way, w = PIXEL_SIZE, h = PIXEL_SIZE):
         super().__init__(x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way)
         self.shot_time = randint(100, 500)
+        self.add(sprites_draw_collide)
+        self.add(tanks)
 
     def update(self):
         self.shot_time -= 1
@@ -96,6 +102,9 @@ class Enemy(Tank):
             self.shot_time = randint(100, 500)
                 
 class Player(Tank):
+    def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way, w = PIXEL_SIZE, h = PIXEL_SIZE):
+        super().__init__(x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way)
+        self.bullets_limit = 1
     def update(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and self.rect.x > 0 and self.can_move_a:
@@ -162,11 +171,17 @@ class Bullet(Tank):
             self.kill()
             music_shot_wall.play()
 
-        if pygame.sprite.spritecollide(self, tanks, True):
-            self.create_bullet_bam()
-            self.kill()
-            music_shot_tank.play()
-
+        if self in bullets_player:
+            if pygame.sprite.spritecollide(self, tanks, True):
+                self.create_bullet_bam()
+                self.kill()
+                music_shot_tank.play()
+            if pygame.sprite.spritecollide(self, bullets_enemys, True):
+                self.kill()
+        elif self in bullets_enemys:
+            if pygame.sprite.spritecollide(self, tanks, False):
+                self.kill()
+        
         if pygame.sprite.collide_rect(self, player):
             self.create_bullet_bam()
             self.kill()
@@ -174,7 +189,6 @@ class Bullet(Tank):
             tanks.empty()
             play = False
         
-
     def create_bullet_bam(self):
         if self.way == "w":
             bullet_bam = BulletBam(self.rect.centerx - 20, self.rect.top - 20, 40, 40, file_path("images/bullet_bam.png"))
@@ -221,18 +235,18 @@ def show_level():
                 pass
             elif pixel == 1:
                 wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall.png")
-                walls_show.add(wall)
+                sprites_draw_collide.add(wall)
                 walls_brick.add(wall)
             elif pixel == 2:
                 wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-titan.jpg")
-                walls_show.add(wall)
+                sprites_draw_collide.add(wall)
                 walls_titan.add(wall)
             elif pixel == 3:
                 wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-green.png")
                 walls_show_green.add(wall)
             elif pixel == 4:
                 wall = Pixel(p_x, p_y, PIXEL_SIZE, PIXEL_SIZE, "images/wall-water.jpg")
-                walls_show.add(wall)
+                sprites_draw_collide.add(wall)
                 walls_water.add(wall)
             p_x += PIXEL_SIZE
         p_y += PIXEL_SIZE
@@ -242,24 +256,25 @@ def create_enemys():
     tank2 = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 0, file_path("images/tanks/enemy2-w.png"), file_path("images/tanks/enemy2-d.png"), file_path("images/tanks/enemy2-s.png"), file_path("images/tanks/enemy2-a.png"), 2, "s")
     tank3 = Enemy(0, 150, file_path("images/tanks/enemy3-w.png"), file_path("images/tanks/enemy3-d.png"), file_path("images/tanks/enemy3-s.png"), file_path("images/tanks/enemy3-a.png"), 2, "s")
     tank4 = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 150, file_path("images/tanks/enemy4-w.png"), file_path("images/tanks/enemy4-d.png"), file_path("images/tanks/enemy4-s.png"), file_path("images/tanks/enemy4-a.png"), 2, "s")
-    tanks.add(tank1)
-    tanks.add(tank2)
-    tanks.add(tank3)
-    tanks.add(tank4)
+
 
 player = Player(200, 550, file_path("images/tanks/tank-yellow-w.png"), file_path("images/tanks/tank-yellow-d.png"), file_path("images/tanks/tank-yellow-s.png"), file_path("images/tanks/tank-yellow-a.png"), 2, "w")
 
-walls_show = pygame.sprite.Group()
 walls_show_green = pygame.sprite.Group()
 walls_brick = pygame.sprite.Group()
 walls_titan = pygame.sprite.Group()
 walls_water = pygame.sprite.Group()
 
 bullets = pygame.sprite.Group()
+bullets_player = pygame.sprite.Group()
+bullets_enemys = pygame.sprite.Group()
 bullet_bams = pygame.sprite.Group()
 
 tanks = pygame.sprite.Group()
+
+sprites_draw_collide = pygame.sprite.Group()
 create_enemys()
+
 #print(walls.sprites()[0])
 #print(player.rect.right)
 
@@ -272,7 +287,9 @@ while game:
             game = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE and play:
-                player.shoot()
+                if len(bullets_player.sprites()) < player.bullets_limit:
+                    player.shoot()
+                
             if event.key == pygame.K_r:
                 player.rect.x = 200
                 player.rect.y = 550
@@ -282,7 +299,7 @@ while game:
     if play:
         window.fill((0, 0, 0))
         
-        walls_show.draw(window)
+        sprites_draw_collide.draw(window)
 
         tanks.draw(window)
         tanks.update()
