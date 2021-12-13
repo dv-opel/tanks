@@ -1,7 +1,7 @@
 import pygame
 pygame.init()
 import os
-from random import randint
+from random import randint, choice
 
 def file_path(im_name):
     return os.path.join(os.path.abspath(__file__ + "/.."), im_name)
@@ -60,17 +60,71 @@ class Tank(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, sprites_draw_collide, False):
             if self.way == "w":
                 self.can_move_w = False
+                return False
             if self.way == "d":
                 self.can_move_d = False
+                return False
             if self.way == "s":
                 self.can_move_s = False
+                return False
             if self.way == "a":
                 self.can_move_a = False
+                return False
         else:
             self.can_move_w = True
             self.can_move_d = True
             self.can_move_s = True
-            self.can_move_a = True    
+            self.can_move_a = True
+            return True
+    def move_w(self):
+        if self.rect.y > 0 and self.can_move_w:
+            if self.rect.x % PIXEL_SIZE >= 25:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
+            self.image = self.image_w
+            self.way = "w"
+            self.rect.y -= self.speed
+            music_tank_go.play()
+    def move_d(self):
+        if self.rect.x < WINDOW_WIDTH - PIXEL_SIZE and self.can_move_d:
+            if self.rect.y % PIXEL_SIZE >= 25:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
+            self.image = self.image_d
+            self.way = "d"
+            self.rect.x += self.speed
+            music_tank_go.play()
+    def move_s(self):
+        if self.rect.y < WINDOW_HEIGHT - PIXEL_SIZE and self.can_move_s:
+            if self.rect.x % PIXEL_SIZE >= 25:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
+            self.image = self.image_s
+            self.way = "s"
+            self.rect.y += self.speed
+            music_tank_go.play()
+    def move_a(self):
+        if self.rect.x > 0 and self.can_move_a:
+            if self.rect.y % PIXEL_SIZE >= 25:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
+            else:
+                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
+            self.image = self.image_a
+            self.way = "a"
+            self.rect.x -= self.speed
+            music_tank_go.play()
+    def move_enemy(self):
+        if self.way == "a":
+            self.move_a()
+        elif self.way == "w":
+            self.move_w()
+        elif self.way == "d":
+            self.move_d()
+        elif self.way == "s":
+            self.move_s()
     def shoot(self):
         if self.way == "w":
             bullet = Bullet(self.rect.centerx - 5, self.rect.top - 7, "images/bullet_w.png", "images/bullet_d.png", "images/bullet_s.png", "images/bullet_a.png", 3, self.way, 10, 10)
@@ -87,62 +141,41 @@ class Tank(pygame.sprite.Sprite):
         music_shot.play()
         bullet.add(bullets)
 
-
 class Enemy(Tank):
     def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way, w = PIXEL_SIZE, h = PIXEL_SIZE):
         super().__init__(x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way)
-        self.shot_time = randint(100, 500)
-        self.add(sprites_draw_collide)
+        self.shot_time = randint(100, 300)
         self.add(tanks)
+        self.move_time = randint(60, 150)
 
     def update(self):
         self.shot_time -= 1
         if self.shot_time <= 0:
             self.shoot()
-            self.shot_time = randint(100, 500)
-                
+            self.shot_time = randint(100, 300)
+    
+        self.move_time -= 1
+        if self.move_time <= 0 or not self.can_move:
+            self.way = choice(["w", "d", "s", "a"])
+            self.move_time = randint(60, 150)
+        self.move_enemy()
+        self.can_move()
+          
+        
 class Player(Tank):
     def __init__(self, x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way, w = PIXEL_SIZE, h = PIXEL_SIZE):
         super().__init__(x, y, pic_name_w, pic_name_d, pic_name_s, pic_name_a, speed, way)
         self.bullets_limit = 1
     def update(self):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] and self.rect.x > 0 and self.can_move_a:
-            if self.rect.y % PIXEL_SIZE >= 25:
-                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
-            else:
-                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
-            self.image = self.image_a
-            self.way = "a"
-            self.rect.x -= self.speed
-            music_tank_go.play()
-        elif keys[pygame.K_RIGHT] and self.rect.x < WINDOW_WIDTH - PIXEL_SIZE and self.can_move_d:
-            if self.rect.y % PIXEL_SIZE >= 25:
-                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
-            else:
-                self.rect.y = self.rect.y // PIXEL_SIZE * PIXEL_SIZE
-            self.image = self.image_d
-            self.way = "d"
-            self.rect.x += self.speed
-            music_tank_go.play()
-        elif keys[pygame.K_UP] and self.rect.y > 0 and self.can_move_w:
-            if self.rect.x % PIXEL_SIZE >= 25:
-                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
-            else:
-                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
-            self.image = self.image_w
-            self.way = "w"
-            self.rect.y -= self.speed
-            music_tank_go.play()
-        elif keys[pygame.K_DOWN] and self.rect.y < WINDOW_HEIGHT - PIXEL_SIZE and self.can_move_s:
-            if self.rect.x % PIXEL_SIZE >= 25:
-                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE + PIXEL_SIZE
-            else:
-                self.rect.x = self.rect.x // PIXEL_SIZE * PIXEL_SIZE
-            self.image = self.image_s
-            self.way = "s"
-            self.rect.y += self.speed
-            music_tank_go.play()
+        if keys[pygame.K_LEFT]:
+            self.move_a()
+        elif keys[pygame.K_RIGHT]:
+            self.move_d()
+        elif keys[pygame.K_UP]:
+            self.move_w()            
+        elif keys[pygame.K_DOWN]:
+            self.move_s()
 
 class Bullet(Tank):
     def update(self):
@@ -251,12 +284,40 @@ def show_level():
             p_x += PIXEL_SIZE
         p_y += PIXEL_SIZE
 
-def create_enemys():
-    tank1 = Enemy(0, 0, file_path("images/tanks/enemy1-w.png"), file_path("images/tanks/enemy1-d.png"), file_path("images/tanks/enemy1-s.png"), file_path("images/tanks/enemy1-a.png"), 2, "s")
-    tank2 = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 0, file_path("images/tanks/enemy2-w.png"), file_path("images/tanks/enemy2-d.png"), file_path("images/tanks/enemy2-s.png"), file_path("images/tanks/enemy2-a.png"), 2, "s")
-    tank3 = Enemy(0, 150, file_path("images/tanks/enemy3-w.png"), file_path("images/tanks/enemy3-d.png"), file_path("images/tanks/enemy3-s.png"), file_path("images/tanks/enemy3-a.png"), 2, "s")
-    tank4 = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 150, file_path("images/tanks/enemy4-w.png"), file_path("images/tanks/enemy4-d.png"), file_path("images/tanks/enemy4-s.png"), file_path("images/tanks/enemy4-a.png"), 2, "s")
+start_enemy_pos = True
+start_enemy_pos1 = pygame.Rect(0, 0, PIXEL_SIZE, PIXEL_SIZE)
+start_enemy_pos2 = pygame.Rect(WINDOW_WIDTH - PIXEL_SIZE, 0, PIXEL_SIZE, PIXEL_SIZE)
 
+def can_create(rect):
+    res = True
+    for tank in tanks.sprites():
+        if tank.rect.colliderect(rect):
+            res = False
+    if player.rect.colliderect(rect):
+        res = False
+    return res
+
+def create_enemys():
+    global start_enemy_pos
+    if len(tanks.sprites()) < 2:
+        if start_enemy_pos and can_create(start_enemy_pos1):
+            tank = Enemy(0, 0, file_path("images/tanks/enemy1-w.png"), file_path("images/tanks/enemy1-d.png"), file_path("images/tanks/enemy1-s.png"), file_path("images/tanks/enemy1-a.png"), 2, "s")
+            start_enemy_pos = False
+        elif not start_enemy_pos and can_create(start_enemy_pos2):
+            tank = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 0, file_path("images/tanks/enemy2-w.png"), file_path("images/tanks/enemy2-d.png"), file_path("images/tanks/enemy2-s.png"), file_path("images/tanks/enemy2-a.png"), 2, "s")
+            start_enemy_pos = True
+        else:
+            if can_create(start_enemy_pos1):
+                tank = Enemy(0, 0, file_path("images/tanks/enemy1-w.png"), file_path("images/tanks/enemy1-d.png"), file_path("images/tanks/enemy1-s.png"), file_path("images/tanks/enemy1-a.png"), 2, "s")
+                start_enemy_pos = False
+            elif can_create(start_enemy_pos2):
+                tank = Enemy(WINDOW_WIDTH - PIXEL_SIZE, 0, file_path("images/tanks/enemy2-w.png"), file_path("images/tanks/enemy2-d.png"), file_path("images/tanks/enemy2-s.png"), file_path("images/tanks/enemy2-a.png"), 2, "s")
+                start_enemy_pos = True
+    '''
+    start_ticks = pygame.time.get_ticks()
+    seconds = (pygame.time.get_ticks() - start_ticks) / 1000 
+    if seconds > 4:
+    '''
 
 player = Player(200, 550, file_path("images/tanks/tank-yellow-w.png"), file_path("images/tanks/tank-yellow-d.png"), file_path("images/tanks/tank-yellow-s.png"), file_path("images/tanks/tank-yellow-a.png"), 2, "w")
 
@@ -273,7 +334,6 @@ bullet_bams = pygame.sprite.Group()
 tanks = pygame.sprite.Group()
 
 sprites_draw_collide = pygame.sprite.Group()
-create_enemys()
 
 #print(walls.sprites()[0])
 #print(player.rect.right)
@@ -293,24 +353,33 @@ while game:
             if event.key == pygame.K_r:
                 player.rect.x = 200
                 player.rect.y = 550
-                create_enemys()
                 play = True
+            if event.key == pygame.K_e:
+                for t in tanks.sprites():
+                    print(t.can_move_w)
+                    print(t.can_move_d)
+                    print(t.can_move_s)
+                    print(t.can_move_a)
+                    print("---")
+                    print(pygame.sprite.spritecollide(t, sprites_draw_collide, False))
+                    print("---")
 
     if play:
         window.fill((0, 0, 0))
+        create_enemys()
         
         sprites_draw_collide.draw(window)
 
         tanks.draw(window)
         tanks.update()
 
-        player.can_move()
-        player.update()
-        player.show()
-
         bullets.update()
         bullets.draw(window)
         bullet_bams.update()
+
+        player.can_move()
+        player.update()
+        player.show()
 
         walls_show_green.draw(window)
 
